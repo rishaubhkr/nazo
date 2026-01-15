@@ -1,6 +1,6 @@
 "use server"
 
-import { createAdminClient } from "../appwrite-server";
+import { createAdminClient, getLoggedInUser } from "../appwrite-server";
 import { ID } from "node-appwrite";
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
@@ -10,6 +10,9 @@ const QUIZ_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_QUIZ_ITEMS_COL
 
 export async function updateFlashcardPointsAction(itemId: string, pointsDelta: number) {
     try {
+        const user = await getLoggedInUser();
+        if (!user) return { success: false, error: "Unauthorized" };
+
         const { database } = await createAdminClient();
 
         // 1. Get current item to know current points
@@ -18,6 +21,10 @@ export async function updateFlashcardPointsAction(itemId: string, pointsDelta: n
             FLASHCARD_ITEMS_COLLECTION_ID,
             itemId
         );
+
+        if (item.user_id && item.user_id !== user.$id) {
+            return { success: false, error: "Unauthorized access" };
+        }
 
         const currentPoints = item.points || 0;
         const newPoints = Math.round(currentPoints + pointsDelta);
@@ -41,6 +48,9 @@ export async function updateFlashcardPointsAction(itemId: string, pointsDelta: n
 
 export async function updateQuizPointsAction(itemId: string, pointsDelta: number) {
     try {
+        const user = await getLoggedInUser();
+        if (!user) return { success: false, error: "Unauthorized" };
+
         const { database } = await createAdminClient();
 
         // 1. Get current item
@@ -49,6 +59,10 @@ export async function updateQuizPointsAction(itemId: string, pointsDelta: number
             QUIZ_ITEMS_COLLECTION_ID,
             itemId
         );
+
+        if (item.user_id && item.user_id !== user.$id) {
+            return { success: false, error: "Unauthorized access" };
+        }
 
         const currentPoints = item.points || 0;
         const newPoints = Math.round(currentPoints + pointsDelta);

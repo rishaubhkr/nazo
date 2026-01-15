@@ -1,6 +1,6 @@
 "use server"
 
-import { createAdminClient } from "../appwrite-server";
+import { createAdminClient, getLoggedInUser } from "../appwrite-server";
 import { Query } from "node-appwrite";
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
@@ -40,6 +40,9 @@ function isDue(points: number, updatedAtStr: string): boolean {
 
 export async function getDailyMixAction() {
     try {
+        const user = await getLoggedInUser();
+        if (!user) return { success: false, error: "Please login to view daily mix" };
+
         const { database } = await createAdminClient();
 
         // 1. Fetch potential Quiz candidates (Weakest first)
@@ -47,6 +50,7 @@ export async function getDailyMixAction() {
             DATABASE_ID,
             QUIZ_ITEMS_COLLECTION_ID,
             [
+                Query.equal("user_id", user.$id),
                 Query.limit(50),
                 Query.orderAsc("points"), // Focus on low points
                 Query.orderAsc("$updatedAt") // Focus on oldest
@@ -58,6 +62,7 @@ export async function getDailyMixAction() {
             DATABASE_ID,
             FLASHCARD_ITEMS_COLLECTION_ID,
             [
+                Query.equal("user_id", user.$id),
                 Query.limit(50),
                 Query.orderAsc("points"),
                 Query.orderAsc("$updatedAt")

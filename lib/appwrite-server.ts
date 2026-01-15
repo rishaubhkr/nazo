@@ -1,6 +1,7 @@
 "use server"
 
-import { Client, Databases } from "node-appwrite";
+import { Client, Databases, Account } from "node-appwrite";
+import { cookies } from "next/headers";
 
 export async function createAdminClient() {
     const client = new Client()
@@ -28,5 +29,32 @@ export async function createSessionClient(session: string) {
         get database() {
             return new Databases(client);
         },
+        get account() {
+            return new Account(client);
+        }
     };
+}
+
+export async function getLoggedInUser() {
+    try {
+        const cookieStore = await cookies();
+        let session = "";
+
+        // Find the Appwrite session cookie (starts with 'a_session_')
+        const allCookies = cookieStore.getAll();
+        for (const cookie of allCookies) {
+            if (cookie.name.startsWith("a_session_")) {
+                session = cookie.value;
+                break;
+            }
+        }
+
+        if (!session) return null;
+
+        const { account } = await createSessionClient(session);
+        return await account.get();
+    } catch (error) {
+        console.error("Error getting user session:", error);
+        return null;
+    }
 }

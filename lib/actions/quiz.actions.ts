@@ -1,6 +1,6 @@
 "use server"
 
-import { createAdminClient } from "../appwrite-server";
+import { createAdminClient, getLoggedInUser } from "../appwrite-server";
 import { Query } from "node-appwrite";
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
@@ -9,6 +9,9 @@ const QUIZ_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_QUIZ_ITEMS_COL
 
 export async function getQuizzesAction(page: number = 1, limit: number = 10) {
     try {
+        const user = await getLoggedInUser();
+        if (!user) return { success: false, error: "Please login to view quizzes", data: [], total: 0 };
+
         const { database } = await createAdminClient();
         const offset = (page - 1) * limit;
 
@@ -16,6 +19,7 @@ export async function getQuizzesAction(page: number = 1, limit: number = 10) {
             DATABASE_ID,
             QUIZZES_COLLECTION_ID,
             [
+                Query.equal("user_id", user.$id),
                 Query.limit(limit),
                 Query.offset(offset),
                 Query.orderDesc("$createdAt")
@@ -36,6 +40,9 @@ export async function getQuizzesAction(page: number = 1, limit: number = 10) {
 
 export async function getQuizByIdAction(quizId: string) {
     try {
+        const user = await getLoggedInUser();
+        if (!user) return { success: false, error: "Please login to view this quiz" };
+
         const { database } = await createAdminClient();
 
         // 1. Fetch Quiz Details
@@ -44,6 +51,10 @@ export async function getQuizByIdAction(quizId: string) {
             QUIZZES_COLLECTION_ID,
             quizId
         );
+
+        if (quiz.user_id && quiz.user_id !== user.$id) {
+            return { success: false, error: "You do not have permission to view this quiz." };
+        }
 
         // 2. Fetch Quiz Items (Questions)
         const items = await database.listDocuments(

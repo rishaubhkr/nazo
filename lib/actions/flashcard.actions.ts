@@ -1,6 +1,6 @@
 "use server"
 
-import { createAdminClient } from "../appwrite-server";
+import { createAdminClient, getLoggedInUser } from "../appwrite-server";
 import { Query } from "node-appwrite";
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
@@ -9,6 +9,9 @@ const FLASHCARD_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARD
 
 export async function getFlashcardsAction(page: number = 1, limit: number = 10) {
     try {
+        const user = await getLoggedInUser();
+        if (!user) return { success: false, error: "Please login to view flashcards", data: [], total: 0 };
+
         const { database } = await createAdminClient();
         const offset = (page - 1) * limit;
 
@@ -16,6 +19,7 @@ export async function getFlashcardsAction(page: number = 1, limit: number = 10) 
             DATABASE_ID,
             FLASHCARDS_COLLECTION_ID,
             [
+                Query.equal("user_id", user.$id),
                 Query.limit(limit),
                 Query.offset(offset),
                 Query.orderDesc("$createdAt")
@@ -37,7 +41,9 @@ export async function getFlashcardsAction(page: number = 1, limit: number = 10) 
 export async function getFlashcardDeckByIdAction(deckId: string) {
     try {
         console.log(`[getFlashcardDeckByIdAction] Fetching Deck: ${deckId}`);
-        console.log(`[Debug] DB: ${DATABASE_ID}, Deck Col: ${FLASHCARDS_COLLECTION_ID}, Items Col: ${FLASHCARD_ITEMS_COLLECTION_ID}`);
+
+        const user = await getLoggedInUser();
+        if (!user) return { success: false, error: "Please login to view this deck" };
 
         const { database } = await createAdminClient();
 
@@ -47,6 +53,11 @@ export async function getFlashcardDeckByIdAction(deckId: string) {
             FLASHCARDS_COLLECTION_ID,
             deckId
         );
+
+        if (deck.user_id && deck.user_id !== user.$id) {
+            return { success: false, error: "You do not have permission to view this deck." };
+        }
+
         console.log(`[Debug] Deck Found: ${deck ? deck.$id : 'No'}`);
 
         // 2. Fetch Flashcards

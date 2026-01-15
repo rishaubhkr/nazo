@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-import { createAdminClient } from "../appwrite-server";
+import { createAdminClient, getLoggedInUser } from "../appwrite-server";
 import { ID } from "node-appwrite";
 
 // Define IDs - Users should update these in .env
@@ -15,6 +15,7 @@ const QUIZ_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_QUIZ_ITEMS_COL
 
 export async function generateQuizAction(prompt: string, difficulty: string, quantity: string, sourceType: "topic" | "text" = "topic") {
     try {
+        // ... (existing prompt logic) ...
         let instructionText = "";
         if (sourceType === "topic") {
             instructionText = `Generate a quiz based on the provided TOPIC. Use your internal knowledge base to create relevant and accurate questions suitable for the specified difficulty.`;
@@ -57,6 +58,8 @@ export async function generateQuizAction(prompt: string, difficulty: string, qua
             // Save to Appwrite
             if (process.env.APPWRITE_API_KEY && DATABASE_ID && QUIZZES_COLLECTION_ID) {
                 console.log("Saving to Appwrite...");
+                const user = await getLoggedInUser();
+
                 const { database } = await createAdminClient();
 
                 // 1. Create Quiz Header
@@ -68,6 +71,7 @@ export async function generateQuizAction(prompt: string, difficulty: string, qua
                         title: jsonResponse.title,
                         description: jsonResponse.description,
                         category: jsonResponse.category,
+                        user_id: user ? user.$id : null,
                     }
                 );
 
@@ -79,6 +83,7 @@ export async function generateQuizAction(prompt: string, difficulty: string, qua
                         ID.unique(),
                         {
                             quiz_id: quiz.$id,
+                            user_id: user ? user.$id : null,
                             question: item.question,
                             correctOption: item.correctOption,
                             options: item.options,
@@ -150,6 +155,8 @@ export async function generateFlashcardsAction(prompt: string, difficulty: strin
             // Save to Appwrite
             if (process.env.APPWRITE_API_KEY && DATABASE_ID && FLASHCARDS_COLLECTION_ID) {
                 console.log("Saving Flashcards to Appwrite...");
+                const user = await getLoggedInUser();
+
                 const { database } = await createAdminClient();
 
                 // 1. Create Flashcard Deck Header
@@ -160,6 +167,7 @@ export async function generateFlashcardsAction(prompt: string, difficulty: strin
                     {
                         title: jsonResponse.title,
                         description: jsonResponse.description,
+                        user_id: user ? user.$id : null,
                     }
                 );
 
@@ -171,6 +179,7 @@ export async function generateFlashcardsAction(prompt: string, difficulty: strin
                         ID.unique(),
                         {
                             flashcard_id: deck.$id,
+                            user_id: user ? user.$id : null,
                             front: item.front,
                             back: item.back,
                             hint: item.hint,
