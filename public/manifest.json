@@ -1,0 +1,15 @@
+{
+    "name": "nazo.",
+    "short_name": "nazo",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#131f24",
+    "theme_color": "#131f24",
+    "icons": [
+        {
+            "src": "/icon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}

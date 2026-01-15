@@ -1,0 +1,170 @@
+{
+  "quiz": [
+    {
+      "question": "World War II officially began in Europe when Germany invaded which country on September 1, 1939?",  
+      "options": [
+        "France",
+        "Czechoslovakia",
+        "Poland",
+        "Austria"
+      ],
+      "answer": "Poland",
+      "explanation": "The German invasion of Poland on September 1, 1939, prompted Britain and France to declare war on Germany, formally starting the conflict in Europe."
+    },
+    {
+      "question": "What strategic naval battle in June 1942 is widely considered the turning point of the war in the Pacific Theater?",
+      "options": [
+        "Battle of the Coral Sea",
+        "Battle of Guadalcanal",
+        "Battle of Midway",
+        "Attack on Pearl Harbor"
+      ],
+      "answer": "Battle of Midway",
+      "explanation": "The Battle of Midway resulted in a decisive victory for the US Navy, crippling Japan's carrier fleet and permanently weakening its offensive capacity."
+    },
+    {
+      "question": "What was the term used to describe Germany's 'lightning war' military doctrine, characterized by rapid, mechanized assaults?",
+      "options": [
+        "Sitzkrieg",
+        "Wehrmacht",
+        "Blitzkrieg",
+        "Operation Barbarossa"
+      ],
+      "answer": "Blitzkrieg",
+      "explanation": "Blitzkrieg utilized coordinated air support and rapid tank movements to overwhelm enemy defenses quickly, defining the early German successes."
+    },
+    {
+      "question": "What was the code name for the Allied invasion of Normandy on June 6, 1944?",
+      "options": [
+        "Operation Torch",
+        "Operation Sea Lion",
+        "Operation Overlord",
+        "Operation Husky"
+      ],
+      "answer": "Operation Overlord",
+      "explanation": "Operation Overlord was the overall strategic plan for the massive seaborne invasion (D-Day) that established the long-awaited Western Front against Germany."
+    },
+    {
+      "question": "Which major battle marked the significant defeat of the German Sixth Army and is often considered the critical turning point on the Eastern Front?",
+      "options": [
+        "Battle of Kursk",
+        "Siege of Leningrad",
+        "Battle of Moscow",
+        "Battle of Stalingrad"
+      ],
+      "answer": "Battle of Stalingrad",
+      "explanation": "The Soviet victory at Stalingrad (1942–1943) was catastrophic for the Wehrmacht, halting the German advance into the Soviet Union and marking the beginning of the German retreat."
+    },
+    {
+      "question": "Which American President authorized the use of the atomic bombs against Japan?",
+      "options": [
+        "Franklin D. Roosevelt",
+        "Dwight D. Eisenhower",
+        "Harry S. Truman",
+        "Herbert Hoover"
+      ],
+      "answer": "Harry S. Truman",
+      "explanation": "Truman became President after the death of FDR in April 1945 and made the difficult decision to deploy the atomic weapons on Hiroshima and Nagasaki in August 1945."
+    },
+    {
+      "question": "Before entering the war, the United States aided the Allies primarily through which piece of legislation?",
+      "options": [
+        "Neutrality Acts",
+        "Lend-Lease Act",
+        "Kellogg-Briand Pact",
+        "Cash and Carry"
+      ],
+      "answer": "Lend-Lease Act",
+      "explanation": "The Lend-Lease Act (passed in March 1941) allowed the US to supply war materials to Allied nations like Britain, China, and the Soviet Union without immediate payment, effectively drawing the US closer to the Allied cause."
+    },
+    {
+      "question": "The systematic, state-sponsored persecution and murder of six million Jews by the Nazi regime is known as the:",
+      "options": [
+        "Kristallnacht",
+        "Final Solution",
+        "Holocaust",
+        "Nuremberg Laws"
+      ],
+      "answer": "Holocaust",
+      "explanation": "The Holocaust refers specifically to the genocide committed by Nazi Germany and its collaborators between 1941 and 1945."
+    },
+    {
+      "question": "The Battle of Britain was fought primarily using what branch of military technology?",
+      "options": [
+        "Submarines and U-boats",
+        "Tanks and mechanized infantry",
+        "Air forces (Luftwaffe vs. RAF)",
+        "Naval surface fleets"
+      ],
+      "answer": "Air forces (Luftwaffe vs. RAF)",
+      "explanation": "The Battle of Britain (summer and autumn of 1940) was the first major military campaign fought entirely by air forces, pitting the German Luftwaffe against the British Royal Air Force (RAF)."
+    },
+    {
+      "question": "The military organization that developed the atomic bomb was secretly known as the:",
+      "options": [
+        "Project Rainbow",
+        "Manhattan Project",
+        "Operation Paperclip",
+        "Project X"
+      ],
+      "answer": "Manhattan Project",
+      "explanation": "The Manhattan Project was the highly secretive research and development program, primarily led by the United States, that produced the first nuclear weapons during the war."
+    }
+  ]
+}
+
+
+{
+  "flashcards": [
+    {
+      "front": "Which 1941 U.S. policy allowed the transfer of war supplies to Allied nations deemed vital to the defense of the United States without immediate payment?",
+      "back": "Lend-Lease Act",
+      "hint": "FDR famously described it as lending a garden hose to a neighbor whose house is on fire."
+    },
+    {
+      "front": "What was the code name for the Allied invasion of North Africa in November 1942, marking the first major combat effort by American troops in the European-African theater?",
+      "back": "Operation Torch",
+      "hint": "The name relates to illumination or guidance."
+    },
+    {
+      "front": "Which pivotal naval battle in June 1942, fought six months after Pearl Harbor, is considered the turning point of the war in the Pacific?",
+      "back": "Battle of Midway",
+      "hint": "It involved four Japanese aircraft carriers being sunk."
+    },
+    {
+      "front": "What event in September 1939, executed using the 'Blitzkrieg' doctrine, is generally considered the official start of World War II in Europe?",
+      "back": "The German invasion of Poland",
+      "hint": "This invasion led directly to declarations of war by the UK and France."
+    },
+    {
+      "front": "What was the official name of the German Air Force during WWII?",
+      "back": "Luftwaffe",
+      "hint": "Its commander was Hermann Göring."
+    },
+    {
+      "front": "What was the name of the secret American program responsible for developing the atomic bombs used against Japan?",
+      "back": "The Manhattan Project",
+      "hint": "Major research sites included Los Alamos and Oak Ridge."
+    },
+    {
+      "front": "Who was the powerful Japanese Prime Minister and Army General who ordered the attack on Pearl Harbor and was executed for war crimes after the war?",
+      "back": "Hideki Tojo",
+      "hint": "He led the nation through most of the conflict."
+    },
+    {
+      "front": "Which massive battle on the Eastern Front, ending in February 1943, marked the first major defeat for Hitler's army and is widely considered the turning point of the war in Europe?",
+      "back": "Battle of Stalingrad",
+      "hint": "It was fought over a key industrial city named after the Soviet leader."
+    },
+    {
+      "front": "What 1938 agreement, involving Britain and France, is the classic historical example of the policy of 'appeasement' toward Adolf Hitler?",
+      "back": "Munich Agreement",
+      "hint": "It concerned the German annexation of the Sudetenland."
+    },
+    {
+      "front": "What term, meaning 'living space,' defined Hitler's primary expansionist foreign policy goal in Eastern Europe?",
+      "back": "Lebensraum",
+      "hint": "It was central to Nazi racial ideology regarding the settlement of the German people."
+    }
+  ]
+}
