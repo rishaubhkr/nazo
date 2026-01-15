@@ -84,7 +84,7 @@ items[2]{question,options,correctOption,explanation,hint,points}:
         ]);
 
         const toonText = cleanTOON(typeof response.content === 'string' ? response.content : "");
-        const data = decode(toonText);
+        const data = decode(toonText) as any;
 
         // Post-processing options if they came as a string (generic fix)
         // TOON decoder handles JSON arrays inside CSV rows if formatted correctly.
@@ -140,7 +140,7 @@ items[2]{front,back,hint}:
         ]);
 
         const toonText = cleanTOON(typeof response.content === 'string' ? response.content : "");
-        const data = decode(toonText);
+        const data = decode(toonText) as any;
 
         return await saveFlashcardsToDB(data, difficulty, jwt);
 
@@ -163,8 +163,8 @@ async function generateSplitQuiz(fullText: string, difficulty: string, totalQuan
         const sysMsg = `Generate ${itemsPerChunk} questions based on this text. Difficulty: ${difficulty}. Return TOON format: items[N]{question,options,correctOption,explanation,hint,points}. Options should be JSON array string.`;
         const res = await llm.invoke([new SystemMessage(sysMsg), new HumanMessage(chunk.pageContent)]);
         const text = cleanTOON(typeof res.content === 'string' ? res.content : "");
-        const json = decode(text);
-        return json.items || [];
+        const json = decode(text) as any;
+        return json?.items || [];
     });
 
     const results = await Promise.all(chunkPromises);
@@ -195,8 +195,8 @@ async function generateSplitFlashcards(fullText: string, difficulty: string, tot
         const sysMsg = `Generate ${itemsPerChunk} flashcards based on this text. Difficulty: ${difficulty}. Return TOON format: items[N]{front,back,hint}`;
         const res = await llm.invoke([new SystemMessage(sysMsg), new HumanMessage(chunk.pageContent)]);
         const text = cleanTOON(typeof res.content === 'string' ? res.content : "");
-        const json = decode(text);
-        return json.items || [];
+        const json = decode(text) as any;
+        return json?.items || [];
     });
 
     const results = await Promise.all(chunkPromises);
