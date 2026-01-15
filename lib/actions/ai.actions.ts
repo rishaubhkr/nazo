@@ -59,6 +59,10 @@ export async function generateQuizAction(prompt: string, difficulty: string, qua
             if (process.env.APPWRITE_API_KEY && DATABASE_ID && QUIZZES_COLLECTION_ID) {
                 console.log("Saving to Appwrite...");
                 const user = await getLoggedInUser();
+                if (!user) {
+                    console.error("User not found during save.");
+                    return { success: false, error: "Please login to save your quiz." };
+                }
 
                 const { database } = await createAdminClient();
 
@@ -156,6 +160,10 @@ export async function generateFlashcardsAction(prompt: string, difficulty: strin
             if (process.env.APPWRITE_API_KEY && DATABASE_ID && FLASHCARDS_COLLECTION_ID) {
                 console.log("Saving Flashcards to Appwrite...");
                 const user = await getLoggedInUser();
+                if (!user) {
+                    console.error("User not found during save.");
+                    return { success: false, error: "Please login to save your flashcards." };
+                }
 
                 const { database } = await createAdminClient();
 
