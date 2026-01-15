@@ -7,6 +7,7 @@ import { updateQuizPointsAction } from "@/lib/actions/points.actions"
 import { cn } from "@/lib/utils"
 import { X, Heart, Settings, Loader2 } from "lucide-react"
 import confetti from "canvas-confetti"
+import { account } from "@/lib/appwrite"
 
 export default function QuizPlayerPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
@@ -25,7 +26,13 @@ export default function QuizPlayerPage({ params }: { params: Promise<{ id: strin
 
     React.useEffect(() => {
         const fetchQuiz = async () => {
-            const result = await getQuizByIdAction(quizId)
+            let jwt: string | undefined;
+            try {
+                const session = await account.createJWT();
+                jwt = session.jwt;
+            } catch (e) { }
+
+            const result = await getQuizByIdAction(quizId, jwt)
             if (result.success) {
                 setQuiz(result.quiz)
                 setQuestions(result.questions!)
@@ -69,7 +76,16 @@ export default function QuizPlayerPage({ params }: { params: Promise<{ id: strin
 
         setStatus(isCorrect ? "correct" : "wrong")
 
-        await updateQuizPointsAction(currentQuestion.$id, isCorrect ? 1 : -1)
+        // Use JWT for server action to bypass cookie issues
+        let jwt: string | undefined;
+        try {
+            const session = await account.createJWT();
+            jwt = session.jwt;
+        } catch (e) {
+            console.warn("JWT generation failed in quiz player:", e);
+        }
+
+        await updateQuizPointsAction(currentQuestion.$id, isCorrect ? 1 : -1, jwt)
 
         setStrengthMap(prev => {
             const currentVal = prev[currentQuestion.$id] || 3.0
@@ -102,7 +118,6 @@ export default function QuizPlayerPage({ params }: { params: Promise<{ id: strin
             setStatus("idle")
             setHintVisible(false)
         } else {
-            alert("Quiz Completed!")
             router.push("/quizzes")
         }
     }
@@ -200,7 +215,7 @@ export default function QuizPlayerPage({ params }: { params: Promise<{ id: strin
                         >
                             <div className="flex items-center gap-4">
                                 <span className={cn(
-                                    "flex w-8 h-8 rounded-lg items-center justify-center text-sm font-bold border flex-shrink-0 transition-colors",
+                                    "flex w-8 h-8 rounded-lg items-center justify-center text-sm font-bold border shrink-0 transition-colors",
                                     selectedOption === option ? "border-[#84d8ff] text-[#84d8ff]" : "border-[#37464f] text-[#37464f] group-hover:border-[#506672] group-hover:text-[#506672]"
                                 )}>
                                     {idx + 1}

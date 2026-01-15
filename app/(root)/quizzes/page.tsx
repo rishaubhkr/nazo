@@ -5,6 +5,7 @@ import { getQuizzesAction } from "@/lib/actions/quiz.actions"
 import { QuizCard } from "@/components/quiz-card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { account } from "@/lib/appwrite"
 
 export default function QuizzesPage() {
     const [quizzes, setQuizzes] = React.useState<any[]>([])
@@ -15,7 +16,14 @@ export default function QuizzesPage() {
     React.useEffect(() => {
         const fetchQuizzes = async () => {
             setIsLoading(true)
-            const result = await getQuizzesAction(page)
+
+            let jwt: string | undefined;
+            try {
+                const session = await account.createJWT();
+                jwt = session.jwt;
+            } catch (e) { }
+
+            const result = await getQuizzesAction(page, 10, jwt)
 
             if (result.success) {
                 setQuizzes(result.data)

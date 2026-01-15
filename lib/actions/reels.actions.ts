@@ -38,9 +38,9 @@ function isDue(points: number, updatedAtStr: string): boolean {
     return diffDays >= 365;
 }
 
-export async function getDailyMixAction() {
+export async function getDailyMixAction(jwt?: string) {
     try {
-        const user = await getLoggedInUser();
+        const user = await getLoggedInUser(jwt);
         if (!user) return { success: false, error: "Please login to view daily mix" };
 
         const { database } = await createAdminClient();

@@ -4,6 +4,7 @@ import * as React from "react"
 import { getDailyMixAction } from "@/lib/actions/reels.actions"
 import { Loader2, RotateCcw, Check, X, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { account } from "@/lib/appwrite"
 // Reuse actions for updating points
 import { updateFlashcardPointsAction, updateQuizPointsAction } from "@/lib/actions/points.actions"
 
@@ -18,7 +19,13 @@ export default function ReelsPage() {
         if (isInitial) setLoading(true)
         else setFetchingMore(true)
 
-        const res = await getDailyMixAction()
+        let jwt: string | undefined;
+        try {
+            const session = await account.createJWT();
+            jwt = session.jwt;
+        } catch (e) { }
+
+        const res = await getDailyMixAction(jwt)
         if (res.success) {
             setItems(prev => isInitial ? res.data! : [...prev, ...res.data!])
         }
@@ -184,7 +191,13 @@ function FlashcardReelItem({ data, isActive }: { data: any, isActive: boolean })
         playSound(correct ? 'correct' : 'wrong')
         if (navigator.vibrate) navigator.vibrate(correct ? [50, 50, 50] : 100);
 
-        await updateFlashcardPointsAction(data.$id, correct ? 1 : -1)
+        let jwt: string | undefined;
+        try {
+            const session = await account.createJWT();
+            jwt = session.jwt;
+        } catch (e) { }
+
+        await updateFlashcardPointsAction(data.$id, correct ? 1 : -1, jwt)
     }
 
     // Touch handlers
@@ -307,7 +320,14 @@ function QuizReelItem({ data, isActive }: { data: any, isActive: boolean }) {
 
         const isCorrect = opt === data.correctOption
         setStatus(isCorrect ? "correct" : "wrong")
-        await updateQuizPointsAction(data.$id, isCorrect ? 1 : -1)
+
+        let jwt: string | undefined;
+        try {
+            const session = await account.createJWT();
+            jwt = session.jwt;
+        } catch (e) { }
+
+        await updateQuizPointsAction(data.$id, isCorrect ? 1 : -1, jwt)
     }
 
     return (

@@ -13,7 +13,7 @@ const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const QUIZZES_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_QUIZZES_COLLECTION_ID!;
 const QUIZ_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_QUIZ_ITEMS_COLLECTION_ID!;
 
-export async function generateQuizAction(prompt: string, difficulty: string, quantity: string, sourceType: "topic" | "text" = "topic") {
+export async function generateQuizAction(prompt: string, difficulty: string, quantity: string, sourceType: "topic" | "text" = "topic", jwt?: string) {
     try {
         // ... (existing prompt logic) ...
         let instructionText = "";
@@ -38,7 +38,7 @@ export async function generateQuizAction(prompt: string, difficulty: string, qua
         - correctOption: The correct answer text (must match one of the options).
         - explanation: A brief explanation.
         - hint: A subtle clue.
-        - points: Integer (default 10).
+        - points: Integer (default 1).
 
       Return ONLY the JSON object. No markdown, no extra text.
     `;
@@ -58,7 +58,7 @@ export async function generateQuizAction(prompt: string, difficulty: string, qua
             // Save to Appwrite
             if (process.env.APPWRITE_API_KEY && DATABASE_ID && QUIZZES_COLLECTION_ID) {
                 console.log("Saving to Appwrite...");
-                const user = await getLoggedInUser();
+                const user = await getLoggedInUser(jwt);
                 if (!user) {
                     console.error("User not found during save.");
                     return { success: false, error: "Please login to save your quiz." };
@@ -120,7 +120,7 @@ export async function generateQuizAction(prompt: string, difficulty: string, qua
 const FLASHCARDS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARDS_COLLECTION_ID!;
 const FLASHCARD_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARD_ITEMS_COLLECTION_ID!;
 
-export async function generateFlashcardsAction(prompt: string, difficulty: string, quantity: string, sourceType: "topic" | "text" = "topic") {
+export async function generateFlashcardsAction(prompt: string, difficulty: string, quantity: string, sourceType: "topic" | "text" = "topic", jwt?: string) {
     try {
         let instructionText = "";
         if (sourceType === "topic") {
@@ -159,7 +159,7 @@ export async function generateFlashcardsAction(prompt: string, difficulty: strin
             // Save to Appwrite
             if (process.env.APPWRITE_API_KEY && DATABASE_ID && FLASHCARDS_COLLECTION_ID) {
                 console.log("Saving Flashcards to Appwrite...");
-                const user = await getLoggedInUser();
+                const user = await getLoggedInUser(jwt);
                 if (!user) {
                     console.error("User not found during save.");
                     return { success: false, error: "Please login to save your flashcards." };

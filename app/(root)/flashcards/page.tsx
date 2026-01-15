@@ -5,6 +5,7 @@ import { getFlashcardsAction } from "@/lib/actions/flashcard.actions"
 import { FlashcardCard } from "@/components/flashcard-card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { account } from "@/lib/appwrite"
 
 export default function FlashcardsPage() {
     const [flashcards, setFlashcards] = React.useState<any[]>([])
@@ -15,7 +16,14 @@ export default function FlashcardsPage() {
     React.useEffect(() => {
         const fetchFlashcards = async () => {
             setIsLoading(true)
-            const result = await getFlashcardsAction(page)
+
+            let jwt: string | undefined;
+            try {
+                const session = await account.createJWT();
+                jwt = session.jwt;
+            } catch (e) { }
+
+            const result = await getFlashcardsAction(page, 10, jwt)
 
             if (result.success) {
                 setFlashcards(result.data)

@@ -8,9 +8,9 @@ const FLASHCARDS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARDS_COL
 const FLASHCARD_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARD_ITEMS_COLLECTION_ID!;
 const QUIZ_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_QUIZ_ITEMS_COLLECTION_ID!;
 
-export async function updateFlashcardPointsAction(itemId: string, pointsDelta: number) {
+export async function updateFlashcardPointsAction(itemId: string, pointsDelta: number, jwt?: string) {
     try {
-        const user = await getLoggedInUser();
+        const user = await getLoggedInUser(jwt);
         if (!user) return { success: false, error: "Unauthorized" };
 
         const { database } = await createAdminClient();
@@ -46,9 +46,9 @@ export async function updateFlashcardPointsAction(itemId: string, pointsDelta: n
     }
 }
 
-export async function updateQuizPointsAction(itemId: string, pointsDelta: number) {
+export async function updateQuizPointsAction(itemId: string, pointsDelta: number, jwt?: string) {
     try {
-        const user = await getLoggedInUser();
+        const user = await getLoggedInUser(jwt);
         if (!user) return { success: false, error: "Unauthorized" };
 
         const { database } = await createAdminClient();

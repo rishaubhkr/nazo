@@ -6,6 +6,7 @@ import { getFlashcardDeckByIdAction } from "@/lib/actions/flashcard.actions"
 import { updateFlashcardPointsAction } from "@/lib/actions/points.actions"
 import { cn } from "@/lib/utils"
 import { X, Settings, Loader2, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react"
+import { account } from "@/lib/appwrite"
 
 export default function FlashcardPlayerPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
@@ -24,7 +25,13 @@ export default function FlashcardPlayerPage({ params }: { params: Promise<{ id: 
 
     React.useEffect(() => {
         const fetchDeck = async () => {
-            const result = await getFlashcardDeckByIdAction(deckId)
+            let jwt: string | undefined;
+            try {
+                const session = await account.createJWT();
+                jwt = session.jwt;
+            } catch (e) { }
+
+            const result = await getFlashcardDeckByIdAction(deckId, jwt)
             if (result.success) {
                 setDeck(result.deck)
                 setCards(result.cards!)
@@ -41,7 +48,13 @@ export default function FlashcardPlayerPage({ params }: { params: Promise<{ id: 
 
         // Apply penalty in DB
         const card = cards[currentCardIndex]
-        await updateFlashcardPointsAction(card.$id, -1)
+        let jwt: string | undefined;
+        try {
+            const session = await account.createJWT();
+            jwt = session.jwt;
+        } catch (e) { }
+
+        await updateFlashcardPointsAction(card.$id, -1, jwt)
     }
 
     const handleFlip = () => {
@@ -55,7 +68,13 @@ export default function FlashcardPlayerPage({ params }: { params: Promise<{ id: 
         setSessionStatus("rated")
 
         // Update points in DB
-        await updateFlashcardPointsAction(card.$id, isCorrect ? 1 : -1)
+        let jwt: string | undefined;
+        try {
+            const session = await account.createJWT();
+            jwt = session.jwt;
+        } catch (e) { }
+
+        await updateFlashcardPointsAction(card.$id, isCorrect ? 1 : -1, jwt)
 
         // Update local score map for final tally display (optional, can keep for session summary)
         setScoreMap(prev => ({
@@ -77,7 +96,6 @@ export default function FlashcardPlayerPage({ params }: { params: Promise<{ id: 
         } else {
             // Calculate final score
             const totalScore = Object.values(scoreMap).reduce((a, b) => a + b, 0)
-            alert(`This Deck is Complete! Great job! 🎉 Final Score: ${totalScore}`)
             router.push("/flashcards")
         }
     }

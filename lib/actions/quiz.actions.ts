@@ -7,9 +7,9 @@ const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const QUIZZES_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_QUIZZES_COLLECTION_ID!;
 const QUIZ_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_QUIZ_ITEMS_COLLECTION_ID!;
 
-export async function getQuizzesAction(page: number = 1, limit: number = 10) {
+export async function getQuizzesAction(page: number = 1, limit: number = 10, jwt?: string) {
     try {
-        const user = await getLoggedInUser();
+        const user = await getLoggedInUser(jwt);
         if (!user) return { success: false, error: "Please login to view quizzes", data: [], total: 0 };
 
         const { database } = await createAdminClient();
@@ -38,9 +38,9 @@ export async function getQuizzesAction(page: number = 1, limit: number = 10) {
     }
 }
 
-export async function getQuizByIdAction(quizId: string) {
+export async function getQuizByIdAction(quizId: string, jwt?: string) {
     try {
-        const user = await getLoggedInUser();
+        const user = await getLoggedInUser(jwt);
         if (!user) return { success: false, error: "Please login to view this quiz" };
 
         const { database } = await createAdminClient();

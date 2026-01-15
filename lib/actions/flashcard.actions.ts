@@ -7,9 +7,9 @@ const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const FLASHCARDS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARDS_COLLECTION_ID!;
 const FLASHCARD_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARD_ITEMS_COLLECTION_ID!;
 
-export async function getFlashcardsAction(page: number = 1, limit: number = 10) {
+export async function getFlashcardsAction(page: number = 1, limit: number = 10, jwt?: string) {
     try {
-        const user = await getLoggedInUser();
+        const user = await getLoggedInUser(jwt);
         if (!user) return { success: false, error: "Please login to view flashcards", data: [], total: 0 };
 
         const { database } = await createAdminClient();
@@ -38,11 +38,11 @@ export async function getFlashcardsAction(page: number = 1, limit: number = 10) 
     }
 }
 
-export async function getFlashcardDeckByIdAction(deckId: string) {
+export async function getFlashcardDeckByIdAction(deckId: string, jwt?: string) {
     try {
         console.log(`[getFlashcardDeckByIdAction] Fetching Deck: ${deckId}`);
 
-        const user = await getLoggedInUser();
+        const user = await getLoggedInUser(jwt);
         if (!user) return { success: false, error: "Please login to view this deck" };
 
         const { database } = await createAdminClient();

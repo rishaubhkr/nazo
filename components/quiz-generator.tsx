@@ -36,6 +36,7 @@ import {
     generateQuizAction,
     generateFlashcardsAction
 } from "@/lib/actions/ai.actions"
+import { account } from "@/lib/appwrite"
 
 export function QuizGenerator() {
     const [mode, setMode] = React.useState("quiz")
@@ -63,20 +64,28 @@ export function QuizGenerator() {
         console.log(`Generating ${mode} from ${sourceType}... Prompt: ${prompt.slice(0, 50)}...`)
 
         try {
+            // Generate a JWT to pass to the server action
+            let jwt: string | undefined;
+            try {
+                const session = await account.createJWT();
+                jwt = session.jwt;
+                console.log("JWT generated successfully");
+            } catch (jwtError) {
+                console.warn("Could not generate JWT:", jwtError);
+                // Fallback to cookie-only if JWT fails (might happen if truly logged out)
+            }
+
             const result = mode === "quiz"
-                ? await generateQuizAction(prompt, difficulty, quantity, sourceType)
-                : await generateFlashcardsAction(prompt, difficulty, quantity, sourceType)
+                ? await generateQuizAction(prompt, difficulty, quantity, sourceType, jwt)
+                : await generateFlashcardsAction(prompt, difficulty, quantity, sourceType, jwt)
 
             if (result.success) {
-                console.log("Generation Successful! Check the terminal/console for JSON.")
-                alert("Mission Successful! JSON console mein check kar le.")
+                console.log("Generation Successful! Result:", result)
             } else {
                 console.error("Generation Failed:", result.error)
-                alert("Bhai, kuch gadbad ho gayi: " + result.error)
             }
         } catch (error) {
             console.error("Submission Error:", error)
-            alert("Bhai, server side pe koi panga ho gaya!")
         } finally {
             setIsLoading(false)
         }

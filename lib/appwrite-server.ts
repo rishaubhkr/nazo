@@ -16,13 +16,20 @@ export async function createAdminClient() {
     };
 }
 
-export async function createSessionClient(session: string) {
+export async function createSessionClient(session: string, type: 'cookie' | 'jwt' = 'cookie') {
     const client = new Client()
         .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
         .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
 
     if (session) {
-        client.setSession(session);
+        if (type === 'jwt') {
+            client.setJWT(session);
+        } else {
+            console.log(`[createSessionClient] Setting session: ${session.substring(0, 10)}... (Length: ${session.length})`);
+            client.setSession(session);
+        }
+    } else {
+        console.log(`[createSessionClient] No session provided!`);
     }
 
     return {
@@ -35,13 +42,21 @@ export async function createSessionClient(session: string) {
     };
 }
 
-export async function getLoggedInUser() {
+export async function getLoggedInUser(jwt?: string) {
     try {
+        // If JWT is provided (from Client SDK via Server Action arg), use it directly.
+        if (jwt) {
+            const { account } = await createSessionClient(jwt, 'jwt');
+            return await account.get();
+        }
+
         const cookieStore = await cookies();
         let session = "";
 
         // Find the Appwrite session cookie (starts with 'a_session_')
         const allCookies = cookieStore.getAll();
+        console.log("[getLoggedInUser] Cookies found:", allCookies.map(c => c.name));
+
         for (const cookie of allCookies) {
             if (cookie.name.startsWith("a_session_")) {
                 session = cookie.value;
@@ -51,7 +66,7 @@ export async function getLoggedInUser() {
 
         if (!session) return null;
 
-        const { account } = await createSessionClient(session);
+        const { account } = await createSessionClient(session, 'cookie');
         return await account.get();
     } catch (error) {
         console.error("Error getting user session:", error);
