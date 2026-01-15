@@ -16,7 +16,7 @@ const FLASHCARD_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARD
 
 // Initialize LangChain Gemini Model
 const llm = new ChatGoogleGenerativeAI({
-    modelName: "gemini-2.0-flash",
+    model: "gemini-2.0-flash",
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0.7,
     maxOutputTokens: 8192,
