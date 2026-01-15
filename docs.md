@@ -19,7 +19,8 @@
 ## 3. Technology Stack
 - **Framework:** Next.js 15+ (App Router)
 - **Styling:** Tailwind CSS 4.0
-- **AI Engine:** Google Gemini Pro 1.5
+- **AI Orchestration:** LangChain (Google GenAI SDK) with Zod Structured Output
+- **AI Model:** Google Gemini 2.0 Flash
 - **Backend/Auth:** Appwrite (Endpoint: `https://sgp.cloud.appwrite.io/v1`)
 - **State Management:** React Hooks (useState, useEffect, useRef)
 - **Icons:** Lucide React
