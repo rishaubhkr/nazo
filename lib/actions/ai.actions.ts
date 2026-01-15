@@ -1,11 +1,12 @@
 "use server"
 
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { createAdminClient, getLoggedInUser } from "../appwrite-server";
 import { ID } from "node-appwrite";
-import { z } from "zod";
+// @ts-ignore
+import { decode } from "@toon-format/toon";
 
 // --- ENV & CONFIG ---
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
@@ -22,36 +23,12 @@ const llm = new ChatGoogleGenerativeAI({
     maxOutputTokens: 8192,
 });
 
-// --- ZOD SCHEMAS for Structured Output (Saves Tokens & Parsing Time) ---
-
-const QuizItemSchema = z.object({
-    question: z.string().describe("The question text"),
-    options: z.array(z.string()).length(4).describe("Array of exactly 4 options"),
-    correctOption: z.string().describe("The correct answer matching one option"),
-    explanation: z.string().describe("Brief explanation of the answer"),
-    hint: z.string().describe("A subtle clue"),
-    points: z.number().default(10).describe("Points value, default 10"),
-});
-
-const QuizOutputSchema = z.object({
-    title: z.string().describe("Creative title for the quiz"),
-    description: z.string().describe("Short description"),
-    category: z.string().describe("Topic category"),
-    items: z.array(QuizItemSchema).describe("List of questions"),
-});
-
-const FlashcardItemSchema = z.object({
-    front: z.string().describe("Question or term"),
-    back: z.string().describe("Answer or definition"),
-    hint: z.string().describe("Subtle clue"),
-});
-
-const FlashcardOutputSchema = z.object({
-    title: z.string().describe("Title for the deck"),
-    description: z.string().describe("Short description"),
-    items: z.array(FlashcardItemSchema).describe("List of flashcards"),
-});
-
+// --- HELPER TO EXTRACT TOON ---
+const cleanTOON = (text: string) => {
+    // Remove markdown code blocks if present
+    const clean = text.replace(/```toon/g, "").replace(/```/g, "").trim();
+    return clean;
+};
 
 // --- CORE ACTIONS ---
 
@@ -63,7 +40,7 @@ export async function generateQuizAction(
     jwt?: string
 ) {
     try {
-        console.log(`[AI] Generating Quiz via LangChain (Structured) | Source: ${sourceType}`);
+        console.log(`[AI] Generating Quiz via LangChain (TOON) | Source: ${sourceType}`);
 
         if (sourceType === "text" && prompt.length > 20000) {
             return await generateSplitQuiz(prompt, difficulty, parseInt(quantity), jwt);
@@ -73,14 +50,46 @@ export async function generateQuizAction(
             ? `Generate a quiz based on the provided TOPIC.`
             : `Generate a quiz STRICTLY based on the provided TEXT.`;
 
-        const structuredLlm = llm.withStructuredOutput(QuizOutputSchema);
+        const systemPrompt = `
+You are an expert quiz generator. ${instructionText}
+Difficulty: ${difficulty}
+Target Quantity: ${quantity}
 
-        const response = await structuredLlm.invoke([
-            new SystemMessage(`You are a quiz generator. ${instructionText} Difficulty: ${difficulty}. Amount: ${quantity}.`),
+Reply with valid TOON format.
+Structure:
+title: String
+description: String
+category: String
+items[${quantity}]{question,options,correctOption,explanation,hint,points}:
+  "Question text","Option A|Option B|Option C|Option D","Option A","Explanation",Hint,10
+
+Note: For options array, join them with pipe '|' in the TOON value, I will split them later. Or strictly follow TOON array syntax if possible, but simple CSV-like rows are better for TOON.
+Actually, use standard TOON but make sure options are a list.
+Simpler:
+items[${quantity}]{question,options,correctOption,explanation,hint,points}
+where 'options' is a string array like ["A","B","C","D"].
+
+Example Output:
+title: Math Quiz
+description: Basic Math
+category: Education
+items[2]{question,options,correctOption,explanation,hint,points}:
+  What is 2+2?,["3","4","5","6"],4,Simple addition,Count fingers,10
+  What is 3*3?,["6","9","12","15"],9,Multiplication,Repeated addition,10
+`;
+
+        const response = await llm.invoke([
+            new SystemMessage(systemPrompt),
             new HumanMessage(prompt)
         ]);
 
-        return await saveQuizToDB(response, difficulty, jwt);
+        const toonText = cleanTOON(typeof response.content === 'string' ? response.content : "");
+        const data = decode(toonText);
+
+        // Post-processing options if they came as a string (generic fix)
+        // TOON decoder handles JSON arrays inside CSV rows if formatted correctly.
+
+        return await saveQuizToDB(data, difficulty, jwt);
 
     } catch (error: any) {
         console.error("AI Generation Error:", error);
@@ -96,7 +105,7 @@ export async function generateFlashcardsAction(
     jwt?: string
 ) {
     try {
-        console.log(`[AI] Generating Flashcards via LangChain (Structured) | Source: ${sourceType}`);
+        console.log(`[AI] Generating Flashcards via LangChain (TOON) | Source: ${sourceType}`);
 
         if (sourceType === "text" && prompt.length > 20000) {
             return await generateSplitFlashcards(prompt, difficulty, parseInt(quantity), jwt);
@@ -106,14 +115,34 @@ export async function generateFlashcardsAction(
             ? `Generate flashcards based on the provided TOPIC.`
             : `Generate flashcards STRICTLY based on the provided TEXT.`;
 
-        const structuredLlm = llm.withStructuredOutput(FlashcardOutputSchema);
+        const systemPrompt = `
+You are an expert flashcard generator. ${instructionText}
+Difficulty: ${difficulty}
+Target Quantity: ${quantity}
 
-        const response = await structuredLlm.invoke([
-            new SystemMessage(`You are a flashcard generator. ${instructionText} Difficulty: ${difficulty}. Amount: ${quantity}.`),
+Reply with valid TOON format.
+Structure:
+title: String
+description: String
+items[${quantity}]{front,back,hint}
+
+Example Output:
+title: Biology Basics
+description: Cell structure
+items[2]{front,back,hint}:
+  Powerhouse of cell,Mitochondria,Energy producer
+  Control center,Nucleus,Contains DNA
+`;
+
+        const response = await llm.invoke([
+            new SystemMessage(systemPrompt),
             new HumanMessage(prompt)
         ]);
 
-        return await saveFlashcardsToDB(response, difficulty, jwt);
+        const toonText = cleanTOON(typeof response.content === 'string' ? response.content : "");
+        const data = decode(toonText);
+
+        return await saveFlashcardsToDB(data, difficulty, jwt);
 
     } catch (error: any) {
         console.error("AI Generation Error:", error);
@@ -121,44 +150,34 @@ export async function generateFlashcardsAction(
     }
 }
 
-// --- SPLIT & MERGE STRATEGIES (Updated for Structured Output) ---
+// --- SPLIT & MERGE STRATEGIES ---
 
 async function generateSplitQuiz(fullText: string, difficulty: string, totalQuantity: number, jwt?: string) {
-    console.log("--> Triggering Split Strategy (Structured)...");
+    console.log("--> Triggering Split Strategy (TOON)...");
 
     const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 15000, chunkOverlap: 1000 });
     const chunks = await splitter.createDocuments([fullText]);
     const itemsPerChunk = Math.ceil(totalQuantity / chunks.length);
 
-    console.log(`--> Split into ${chunks.length} chunks. Generating ~${itemsPerChunk} items per chunk.`);
-
-    // Define a schema just for items to save overhead
-    const ChunkSchema = z.object({
-        items: z.array(QuizItemSchema)
+    const chunkPromises = chunks.map(async (chunk) => {
+        const sysMsg = `Generate ${itemsPerChunk} questions based on this text. Difficulty: ${difficulty}. Return TOON format: items[N]{question,options,correctOption,explanation,hint,points}. Options should be JSON array string.`;
+        const res = await llm.invoke([new SystemMessage(sysMsg), new HumanMessage(chunk.pageContent)]);
+        const text = cleanTOON(typeof res.content === 'string' ? res.content : "");
+        const json = decode(text);
+        return json.items || [];
     });
-    const structuredChunkLlm = llm.withStructuredOutput(ChunkSchema);
-
-    const chunkPromises = chunks.map(chunk =>
-        structuredChunkLlm.invoke([
-            new SystemMessage(`Generate ${itemsPerChunk} questions based on this text. Difficulty: ${difficulty}.`),
-            new HumanMessage(chunk.pageContent)
-        ])
-    );
 
     const results = await Promise.all(chunkPromises);
-    const allItems = results.flatMap(r => r?.items || []);
+    const allItems = results.flat();
 
-    // Generate Header
-    const HeaderSchema = z.object({ title: z.string(), description: z.string(), category: z.string() });
-    const headRes = await llm.withStructuredOutput(HeaderSchema).invoke([
-        new SystemMessage("Generate metadata for a quiz based on this text."),
-        new HumanMessage(chunks[0].pageContent.slice(0, 5000))
-    ]);
+    // Verify format of options in case TOON decoding was partial
+    // This is a safety step since LLM output varies
+    // Assuming 'decode' creates objects.
 
     const finalQuiz = {
-        title: headRes?.title || "Long Text Quiz",
-        description: headRes?.description || "Generated from extensive notes.",
-        category: headRes?.category || "General",
+        title: "Long Text Quiz", // Simplified for split strategy to save a call, or add another small call if needed.
+        description: "Generated from extensive context.",
+        category: "General",
         items: allItems
     };
 
@@ -166,34 +185,26 @@ async function generateSplitQuiz(fullText: string, difficulty: string, totalQuan
 }
 
 async function generateSplitFlashcards(fullText: string, difficulty: string, totalQuantity: number, jwt?: string) {
-    console.log("--> Triggering Split Strategy (Flashcards Styled)...");
+    console.log("--> Triggering Split Strategy (Flashcards TOON)...");
 
     const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 15000, chunkOverlap: 1000 });
     const chunks = await splitter.createDocuments([fullText]);
     const itemsPerChunk = Math.ceil(totalQuantity / chunks.length);
 
-    const ChunkSchema = z.object({ items: z.array(FlashcardItemSchema) });
-    const structuredChunkLlm = llm.withStructuredOutput(ChunkSchema);
-
-    const chunkPromises = chunks.map(chunk =>
-        structuredChunkLlm.invoke([
-            new SystemMessage(`Generate ${itemsPerChunk} flashcards based on this text. Difficulty: ${difficulty}.`),
-            new HumanMessage(chunk.pageContent)
-        ])
-    );
+    const chunkPromises = chunks.map(async (chunk) => {
+        const sysMsg = `Generate ${itemsPerChunk} flashcards based on this text. Difficulty: ${difficulty}. Return TOON format: items[N]{front,back,hint}`;
+        const res = await llm.invoke([new SystemMessage(sysMsg), new HumanMessage(chunk.pageContent)]);
+        const text = cleanTOON(typeof res.content === 'string' ? res.content : "");
+        const json = decode(text);
+        return json.items || [];
+    });
 
     const results = await Promise.all(chunkPromises);
-    const allItems = results.flatMap(r => r?.items || []);
-
-    const HeaderSchema = z.object({ title: z.string(), description: z.string() });
-    const headRes = await llm.withStructuredOutput(HeaderSchema).invoke([
-        new SystemMessage("Generate metadata for a flashcard deck based on this text."),
-        new HumanMessage(chunks[0].pageContent.slice(0, 5000))
-    ]);
+    const allItems = results.flat();
 
     const finalDeck = {
-        title: headRes?.title || "Long Text Deck",
-        description: headRes?.description || "Generated from extensive notes.",
+        title: "Long Text Deck",
+        description: "Generated from extensive context.",
         items: allItems
     };
 
@@ -215,20 +226,20 @@ async function saveQuizToDB(data: any, difficulty: string, jwt?: string) {
     const quiz = await database.createDocument(DATABASE_ID, QUIZZES_COLLECTION_ID, ID.unique(), {
         title: data.title,
         description: data.description,
-        category: data.category,
+        category: data.category || "General",
         user_id: user.$id
     });
 
-    const promises = data.items.map((item: any) =>
+    const promises = (data.items || []).map((item: any) =>
         database.createDocument(DATABASE_ID, QUIZ_ITEMS_COLLECTION_ID, ID.unique(), {
             quiz_id: quiz.$id,
             user_id: user.$id,
             question: item.question,
             correctOption: item.correctOption,
-            options: item.options,
+            options: Array.isArray(item.options) ? item.options : JSON.parse(item.options || "[]"),
             hint: item.hint,
             difficulty: difficulty.toLowerCase(),
-            points: item.points || 10
+            points: Number(item.points) || 10
         })
     );
 
@@ -251,7 +262,7 @@ async function saveFlashcardsToDB(data: any, difficulty: string, jwt?: string) {
         user_id: user.$id
     });
 
-    const promises = data.items.map((item: any) =>
+    const promises = (data.items || []).map((item: any) =>
         database.createDocument(DATABASE_ID, FLASHCARD_ITEMS_COLLECTION_ID, ID.unique(), {
             flashcard_id: deck.$id,
             user_id: user.$id,

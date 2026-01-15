@@ -13,6 +13,8 @@
     "@google/generative-ai": "^0.24.1",
     "@langchain/core": "^1.1.15",
     "@langchain/google-genai": "^2.1.10",
+    "@langchain/textsplitters": "^1.0.1",
+    "@toon-format/toon": "^2.1.0",
     "@types/canvas-confetti": "^1.9.0",
     "appwrite": "^21.5.0",
     "canvas-confetti": "^1.9.4",
