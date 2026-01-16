@@ -273,3 +273,37 @@ async function saveFlashcardsToDB(data: any, difficulty: string, jwt?: string) {
     await Promise.all(promises);
     return { success: true, data, deckId: deck.$id };
 }
+
+// --- CLIENT-SIDE AI HANDLING ---
+
+export async function processAndSaveQuiz(
+    rawText: string,
+    difficulty: string,
+    jwt?: string
+) {
+    try {
+        console.log("[AI] Processing Client-Side Quiz Response...");
+        const toonText = cleanTOON(rawText);
+        const data = decode(toonText) as any;
+        return await saveQuizToDB(data, difficulty, jwt);
+    } catch (error: any) {
+        console.error("Quiz Processing Error:", error);
+        return { success: false, error: error.message || "Failed to process quiz." };
+    }
+}
+
+export async function processAndSaveFlashcards(
+    rawText: string,
+    difficulty: string,
+    jwt?: string
+) {
+    try {
+        console.log("[AI] Processing Client-Side Flashcards Response...");
+        const toonText = cleanTOON(rawText);
+        const data = decode(toonText) as any;
+        return await saveFlashcardsToDB(data, difficulty, jwt);
+    } catch (error: any) {
+        console.error("Flashcards Processing Error:", error);
+        return { success: false, error: error.message || "Failed to process flashcards." };
+    }
+}

@@ -22,6 +22,7 @@ export default function RootLayout({
         className={`antialiased ${inter.className} dark h-full w-full`}
       >
         {children}
+        <script src="https://js.puter.com/v2/"></script>
       </body>
     </html>
   );

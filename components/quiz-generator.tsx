@@ -33,10 +33,16 @@ const difficulties = ["Easy", "Medium", "Hard", "Expert"]
 const quantities = ["5", "10", "15", "20", "30", "45", "60", "80", "100", "120"]
 
 import {
-    generateQuizAction,
-    generateFlashcardsAction
+    processAndSaveQuiz,
+    processAndSaveFlashcards
 } from "@/lib/actions/ai.actions"
 import { account } from "@/lib/appwrite"
+
+declare global {
+    interface Window {
+        puter: any;
+    }
+}
 
 export function QuizGenerator() {
     const [mode, setMode] = React.useState("quiz")
@@ -64,6 +70,14 @@ export function QuizGenerator() {
         console.log(`Generating ${mode} from ${sourceType}... Prompt: ${prompt.slice(0, 50)}...`)
 
         try {
+            // Check if Puter is loaded
+            if (!window.puter) {
+                console.error("Puter.js not loaded");
+                // alert("AI Service is initializing. Please try again in a moment.");
+                setIsLoading(false);
+                return;
+            }
+
             // Generate a JWT to pass to the server action
             let jwt: string | undefined;
             try {
@@ -72,15 +86,80 @@ export function QuizGenerator() {
                 console.log("JWT generated successfully");
             } catch (jwtError) {
                 console.warn("Could not generate JWT:", jwtError);
-                // Fallback to cookie-only if JWT fails (might happen if truly logged out)
             }
 
+            // --- PROMPT CONSTRUCTION ---
+            let systemPrompt = "";
+            const instructionText = sourceType === "topic"
+                ? `Generate a ${mode} based on the provided TOPIC.`
+                : `Generate a ${mode} STRICTLY based on the provided TEXT.`;
+
+            if (mode === "quiz") {
+                systemPrompt = `
+You are an expert quiz generator. ${instructionText}
+Difficulty: ${difficulty}
+Target Quantity: ${quantity}
+
+Reply with valid TOON format.
+Structure:
+title: String
+description: String
+category: String
+items[${quantity}]{question,optionsString,correctOption,explanation,hint,points}:
+"Question text","Option A|Option B|Option C|Option D","Option A","Explanation",Hint,10
+
+Note: The 'optionsString' field MUST be a single string containing 4 options separated by a pipe character ('|'). Do NOT use JSON arrays.
+
+Example Output:
+title: Math Quiz
+description: Basic Math
+category: Education
+items[2]{question,optionsString,correctOption,explanation,hint,points}:
+  What is 2+2?,3|4|5|6,4,Simple addition,Count fingers,10
+  What is 3*3?,6|9|12|15,9,Multiplication,Repeated addition,10
+`;
+            } else {
+                systemPrompt = `
+You are an expert flashcard generator. ${instructionText}
+Difficulty: ${difficulty}
+Target Quantity: ${quantity}
+
+Reply with valid TOON format.
+Structure:
+title: String
+description: String
+items[${quantity}]{front,back,hint}
+
+Example Output:
+title: Biology Basics
+description: Cell structure
+items[2]{front,back,hint}:
+  Powerhouse of cell,Mitochondria,Energy producer
+  Control center,Nucleus,Contains DNA
+`;
+            }
+
+            const fullPrompt = `${systemPrompt}\n\nUser Content:\n${prompt}`;
+
+            // --- PUTER AI CALL ---
+            console.log("Calling Puter AI...");
+            const aiResponse = await window.puter.ai.chat(fullPrompt, {
+                model: 'gemini-3-flash-preview'
+            }); // Using 1.5-flash as it's free and fast, user mentioned others but this is reliable.
+
+            // To support response objects or strings:
+            const responseText = typeof aiResponse === 'string' ? aiResponse : aiResponse?.message?.content || aiResponse?.text || JSON.stringify(aiResponse);
+
+            console.log("AI Response received, processing...");
+
+            // --- SAVE TO SERVER ---
             const result = mode === "quiz"
-                ? await generateQuizAction(prompt, difficulty, quantity, sourceType, jwt)
-                : await generateFlashcardsAction(prompt, difficulty, quantity, sourceType, jwt)
+                ? await processAndSaveQuiz(responseText, difficulty, jwt)
+                : await processAndSaveFlashcards(responseText, difficulty, jwt)
 
             if (result.success) {
                 console.log("Generation Successful! Result:", result)
+                // Optional: Clear prompt or redirect?
             } else {
                 console.error("Generation Failed:", result.error)
             }
