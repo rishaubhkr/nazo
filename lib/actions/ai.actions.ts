@@ -17,7 +17,7 @@ const FLASHCARD_ITEMS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_FLASHCARD
 
 // Initialize LangChain Gemini Model
 const llm = new ChatGoogleGenerativeAI({
-    model: "gemini-2.0-flash",
+    model: "gemini-flash-latest",
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0.7,
     maxOutputTokens: 8192,
@@ -60,22 +60,18 @@ Structure:
 title: String
 description: String
 category: String
-items[${quantity}]{question,options,correctOption,explanation,hint,points}:
+items[${quantity}]{question,optionsString,correctOption,explanation,hint,points}:
   "Question text","Option A|Option B|Option C|Option D","Option A","Explanation",Hint,10
 
-Note: For options array, join them with pipe '|' in the TOON value, I will split them later. Or strictly follow TOON array syntax if possible, but simple CSV-like rows are better for TOON.
-Actually, use standard TOON but make sure options are a list.
-Simpler:
-items[${quantity}]{question,options,correctOption,explanation,hint,points}
-where 'options' is a string array like ["A","B","C","D"].
+Note: The 'optionsString' field MUST be a single string containing 4 options separated by a pipe character ('|'). Do NOT use JSON arrays.
 
 Example Output:
 title: Math Quiz
 description: Basic Math
 category: Education
-items[2]{question,options,correctOption,explanation,hint,points}:
-  What is 2+2?,["3","4","5","6"],4,Simple addition,Count fingers,10
-  What is 3*3?,["6","9","12","15"],9,Multiplication,Repeated addition,10
+items[2]{question,optionsString,correctOption,explanation,hint,points}:
+  What is 2+2?,3|4|5|6,4,Simple addition,Count fingers,10
+  What is 3*3?,6|9|12|15,9,Multiplication,Repeated addition,10
 `;
 
         const response = await llm.invoke([
@@ -160,7 +156,7 @@ async function generateSplitQuiz(fullText: string, difficulty: string, totalQuan
     const itemsPerChunk = Math.ceil(totalQuantity / chunks.length);
 
     const chunkPromises = chunks.map(async (chunk) => {
-        const sysMsg = `Generate ${itemsPerChunk} questions based on this text. Difficulty: ${difficulty}. Return TOON format: items[N]{question,options,correctOption,explanation,hint,points}. Options should be JSON array string.`;
+        const sysMsg = `Generate ${itemsPerChunk} questions based on this text. Difficulty: ${difficulty}. Return TOON format: items[N]{question,optionsString,correctOption,explanation,hint,points}. 'optionsString' must be pipe-separated like "A|B|C|D".`;
         const res = await llm.invoke([new SystemMessage(sysMsg), new HumanMessage(chunk.pageContent)]);
         const text = cleanTOON(typeof res.content === 'string' ? res.content : "");
         const json = decode(text) as any;
@@ -236,7 +232,7 @@ async function saveQuizToDB(data: any, difficulty: string, jwt?: string) {
             user_id: user.$id,
             question: item.question,
             correctOption: item.correctOption,
-            options: Array.isArray(item.options) ? item.options : JSON.parse(item.options || "[]"),
+            options: item.optionsString ? item.optionsString.split('|') : (Array.isArray(item.options) ? item.options : []),
             hint: item.hint,
             difficulty: difficulty.toLowerCase(),
             points: Number(item.points) || 10
