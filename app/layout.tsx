@@ -18,6 +18,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`w-full h-full ${inter.variable} ${changaOne.variable} ${balsamiq.variable}`}>
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8590308608127657"
+          crossOrigin="anonymous"
+        ></script>
+      </head>
       <body
         className={`antialiased ${inter.className} dark h-full w-full`}
       >

@@ -13,10 +13,12 @@ import {
     Paperclip,
     Mic,
     Zap,
-    Check
+    Check,
+    FileUp
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import FileUploadExtractor from "@/components/file-upload-extractor"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -50,7 +52,8 @@ export function QuizGenerator() {
     const [quantity, setQuantity] = React.useState("10")
     const [prompt, setPrompt] = React.useState("")
     const [isLoading, setIsLoading] = React.useState(false)
-    const [sourceType, setSourceType] = React.useState<"topic" | "text">("topic")
+    const [sourceType, setSourceType] = React.useState<"topic" | "text" | "file">("topic")
+    const [uploadError, setUploadError] = React.useState("")
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
     // Auto-resize textarea height
@@ -185,14 +188,32 @@ items[2]{front,back,hint}:
                     prompt.length > 50 ? "w-full max-w-4xl" : "w-full max-w-3xl"
                 )}
             >
-                <textarea
-                    ref={textareaRef}
-                    placeholder={sourceType === "topic" ? "What topic do you want to learn today?" : "Paste your text/notes here..."}
-                    className="w-full bg-transparent border-none outline-none resize-none text-lg placeholder:text-[#506672] text-foreground font-medium overflow-y-auto"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    style={{ minHeight: '100px' }}
-                />
+                {/* Conditional Content: File Upload or Textarea */}
+                {sourceType === "file" ? (
+                    <FileUploadExtractor
+                        onTextExtracted={(text) => {
+                            setPrompt(text)
+                            setUploadError("")
+                        }}
+                        onError={(error) => setUploadError(error)}
+                    />
+                ) : (
+                    <textarea
+                        ref={textareaRef}
+                        placeholder={sourceType === "topic" ? "What topic do you want to learn today?" : "Paste your text/notes here..."}
+                        className="w-full bg-transparent border-none outline-none resize-none text-lg placeholder:text-[#506672] text-foreground font-medium overflow-y-auto"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        style={{ minHeight: '100px' }}
+                    />
+                )}
+
+                {/* Error Message */}
+                {uploadError && (
+                    <div className="mt-2 text-[#ff4b4b] text-sm font-medium">
+                        {uploadError}
+                    </div>
+                )}
 
                 <div className="flex flex-col md:flex-row items-center justify-between mt-6 gap-4 w-full">
 
@@ -236,6 +257,16 @@ items[2]{front,back,hint}:
                                 )}
                             >
                                 Text
+                            </button>
+                            <button
+                                onClick={() => setSourceType("file")}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200",
+                                    sourceType === "file" ? "bg-[#2d4653] text-[#84d8ff]" : "text-[#afafaf] hover:text-foreground"
+                                )}
+                            >
+                                <FileUp className="w-3.5 h-3.5" />
+                                File
                             </button>
                         </div>
                     </div>
