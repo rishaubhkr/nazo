@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 const RootLayout = ({ children }: { children: ReactNode }) => {
     const pathname = usePathname()
-    const isReels = pathname === "/reels"
+    const isCollapsed = pathname === "/reels" || pathname.startsWith("/quiz/") || pathname.startsWith("/flashcards/")
 
     return (
         <GlobalProvider>
@@ -23,7 +23,7 @@ const RootLayout = ({ children }: { children: ReactNode }) => {
                 <Sidebar />
                 <main className={cn(
                     "flex-1 pb-24 lg:pb-0 pl-0 transition-all duration-300",
-                    isReels ? "lg:pl-20" : "lg:pl-64"
+                    isCollapsed ? "lg:pl-20" : "lg:pl-64"
                 )}>
                     {children}
                 </main>

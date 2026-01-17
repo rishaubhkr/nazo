@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Layout, Trophy, Package, User, Settings, MoreHorizontal, Infinity } from "lucide-react"
+import { Home, Layout, Trophy, Package, User, Settings, MoreHorizontal, Infinity, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const sidebarItems = [
@@ -10,6 +10,7 @@ const sidebarItems = [
     { name: "QUIZZES", href: "/quizzes", icon: Layout, color: "text-sky-500" },
     { name: "DAILY MIX", href: "/reels", icon: Infinity, color: "text-rose-500" },
     { name: "FLASHCARDS", href: "/flashcards", icon: Package, color: "text-purple-500" },
+    { name: "REPORT", href: "/report", icon: BarChart3, color: "text-cyan-500" },
     { name: "LEADERBOARDS", href: "/leaderboards", icon: Trophy, color: "text-amber-500" },
     { name: "QUESTS", href: "/quests", icon: Package, color: "text-orange-500" },
     { name: "SETTINGS", href: "/settings", icon: Settings, color: "text-slate-400" },
@@ -18,7 +19,8 @@ const sidebarItems = [
 export default function Sidebar() {
     const pathname = usePathname()
 
-    const isReels = pathname === "/reels"
+    // Collapse sidebar for immersive experiences (reels, quiz player, flashcard player)
+    const isCollapsed = pathname === "/reels" || pathname.startsWith("/quiz/") || pathname.startsWith("/flashcards/")
 
     // Mobile Bottom Bar Logic: Only show main items
     const mobileFilteredItems = sidebarItems.filter(item => ["HOME", "QUIZZES", "DAILY MIX", "FLASHCARDS"].includes(item.name))
@@ -28,18 +30,18 @@ export default function Sidebar() {
             {/* Desktop Sidebar (Left) */}
             <aside className={cn(
                 "hidden lg:flex fixed left-0 top-0 bottom-0 bg-[#131f24] border-r-2 border-[#37464f] flex-col py-6 px-4 z-50 transition-all duration-300",
-                isReels ? "w-20 items-center" : "w-64"
+                isCollapsed ? "w-20 items-center" : "w-64"
             )}>
                 {/* Logo */}
                 <div className="mb-8 px-4 h-12 flex items-center justify-start w-full">
                     <Link href="/" className="group">
                         <span className={cn(
                             "font-changa text-3xl tracking-tight text-[#58cc02] group-hover:scale-105 transition-transform duration-300 block",
-                            isReels && "hidden"
+                            isCollapsed && "hidden"
                         )}>
                             nazo
                         </span>
-                        {isReels && <div className="w-8 h-8 rounded-full bg-[#58cc02]" />}
+                        {isCollapsed && <div className="w-8 h-8 rounded-full bg-[#58cc02]" />}
                     </Link>
                 </div>
 
@@ -58,7 +60,7 @@ export default function Sidebar() {
                                     isActive
                                         ? "bg-[#2d4653] border-[#84d8ff] text-[#84d8ff]"
                                         : "bg-transparent border-transparent text-[#afafaf] hover:bg-[#37464f] hover:text-[#e5e5e5]",
-                                    isReels && "justify-center px-0"
+                                    isCollapsed && "justify-center px-0"
                                 )}
                             >
                                 <div className={cn(
@@ -69,7 +71,7 @@ export default function Sidebar() {
                                 </div>
                                 <span className={cn(
                                     "font-extrabold text-[15px] tracking-[1px]",
-                                    isReels && "hidden"
+                                    isCollapsed && "hidden"
                                 )}>
                                     {item.name}
                                 </span>
@@ -83,13 +85,13 @@ export default function Sidebar() {
                         className={cn(
                             "mt-auto group flex items-center gap-4 px-4 py-3 rounded-xl border-2 transition-all duration-200",
                             pathname === "/settings" ? "bg-[#2d4653] border-[#84d8ff] text-[#84d8ff]" : "text-[#afafaf] hover:bg-[#37464f]",
-                            isReels && "justify-center px-0"
+                            isCollapsed && "justify-center px-0"
                         )}
                     >
                         <div className="w-8 h-8 rounded-full bg-slate-500 overflow-hidden border-2 border-[#afafaf] group-hover:scale-110 transition-transform">
                             <User className="w-full h-full p-1 text-slate-200" />
                         </div>
-                        <span className={cn("font-extrabold text-[15px] tracking-[1px]", isReels && "hidden")}>PROFILE</span>
+                        <span className={cn("font-extrabold text-[15px] tracking-[1px]", isCollapsed && "hidden")}>PROFILE</span>
                     </Link>
                 </nav>
             </aside>
