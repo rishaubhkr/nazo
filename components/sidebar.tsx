@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Home, Layout, Trophy, Package, User, Settings, MoreHorizontal, Infinity, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -33,15 +34,20 @@ export default function Sidebar() {
                 isCollapsed ? "w-20 items-center" : "w-64"
             )}>
                 {/* Logo */}
-                <div className="mb-8 px-4 h-12 flex items-center justify-start w-full">
-                    <Link href="/" className="group">
-                        <span className={cn(
-                            "font-changa text-3xl tracking-tight text-[#58cc02] group-hover:scale-105 transition-transform duration-300 block",
-                            isCollapsed && "hidden"
-                        )}>
-                            nazo
-                        </span>
-                        {isCollapsed && <div className="w-8 h-8 rounded-full bg-[#58cc02]" />}
+                <div className="mb-8 px-4 h-12 flex items-center justify-center w-full">
+                    <Link href="/" className="group flex items-center gap-3">
+                        <Image
+                            src="/icon.png"
+                            alt="nazo logo"
+                            width={isCollapsed ? 32 : 48}
+                            height={isCollapsed ? 32 : 48}
+                            className="transition-all duration-300 group-hover:scale-110"
+                        />
+                        {!isCollapsed && (
+                            <span className="font-changa text-3xl tracking-tight text-[#58cc02] group-hover:scale-105 transition-transform duration-300">
+                                nazo
+                            </span>
+                        )}
                     </Link>
                 </div>
 
