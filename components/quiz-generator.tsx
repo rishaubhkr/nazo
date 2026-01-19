@@ -163,10 +163,15 @@ IMPORTANT:
                     });
                     const responseText = typeof aiResponse === 'string' ? aiResponse : aiResponse?.message?.content || aiResponse?.text || JSON.stringify(aiResponse);
 
+                    console.log(`Chunk ${i + 1} response length:`, responseText.length);
+
                     // Parse response to extract items
                     const lines = responseText.split('\n');
                     let itemsStarted = false;
-                    for (const line of lines) {
+
+                    for (let j = 0; j < lines.length; j++) {
+                        const line = lines[j];
+
                         if (line.trim().startsWith('items[')) {
                             itemsStarted = true;
                             // Capture metadata from the first successful chunk
@@ -177,10 +182,22 @@ IMPORTANT:
                             }
                             continue;
                         }
-                        if (itemsStarted && line.trim().length > 0) {
-                            allItemsLines.push(line.trim());
+
+                        if (itemsStarted) {
+                            const trimmedLine = line.trim();
+
+                            // Skip empty lines
+                            if (trimmedLine.length === 0) continue;
+
+                            // Skip lines that look like metadata (contain colons at the start)
+                            if (trimmedLine.match(/^(title|description|category|difficulty):/i)) continue;
+
+                            // This should be an actual item line
+                            allItemsLines.push(trimmedLine);
                         }
                     }
+
+                    console.log(`Extracted ${allItemsLines.length} total items so far`);
                 }
 
                 // Reconstruct a single TOON response
@@ -189,12 +206,21 @@ IMPORTANT:
                     headerMetadata = `title: Extracted ${mode === 'quiz' ? 'Quiz' : 'Deck'}\ndescription: Generated from uploaded content\ncategory: General\n`;
                 }
 
+                // Validate that we extracted items
+                if (allItemsLines.length === 0) {
+                    console.error("Failed to extract any items from AI responses");
+                    throw new Error("No items could be extracted from the uploaded content. The text might be too complex or not suitable for generation.");
+                }
+
                 const itemsHeader = mode === "quiz"
                     ? `items[${allItemsLines.length}]{question,optionsString,correctOption,explanation,hint,points}:`
                     : `items[${allItemsLines.length}]{front,back,hint}:`;
 
                 finalResponseText = `${headerMetadata.trim()}\n${itemsHeader}\n${allItemsLines.join('\n')}`;
-                console.log("Reconstructed TOON response:", finalResponseText.slice(0, 200) + "...");
+                console.log("Reconstructed TOON response:");
+                console.log("- Header metadata lines:", headerMetadata.split('\n').length);
+                console.log("- Items extracted:", allItemsLines.length);
+                console.log("- First 500 chars:", finalResponseText.slice(0, 500));
 
             } else {
                 // --- PROMPT CONSTRUCTION (Standard) ---
