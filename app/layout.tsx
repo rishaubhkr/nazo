@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Changa_One, Balsamiq_Sans } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const changaOne = Changa_One({ weight: '400', subsets: ['latin'], variable: '--font-changa' });
@@ -19,11 +20,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`w-full h-full ${inter.variable} ${changaOne.variable} ${balsamiq.variable}`}>
       <head>
-        <script
+        {/* AdSense Verification Script */}
+        <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8590308608127657"
           crossOrigin="anonymous"
-        ></script>
+          strategy="afterInteractive"
+        />
       </head>
       <body
         className={`antialiased ${inter.className} dark h-full w-full`}

@@ -66,18 +66,21 @@ export function QuizGenerator() {
         }
     }, [prompt])
 
+    const [progressStatus, setProgressStatus] = React.useState("")
+
     const handleSubmit = async () => {
         if (!prompt.trim() || isLoading) return
 
         setIsLoading(true)
-        console.log(`Generating ${mode} from ${sourceType}... Prompt: ${prompt.slice(0, 50)}...`)
+        setProgressStatus("Initializing...")
+        console.log(`Generating ${mode} from ${sourceType}...`)
 
         try {
             // Check if Puter is loaded
             if (!window.puter) {
                 console.error("Puter.js not loaded");
-                // alert("AI Service is initializing. Please try again in a moment.");
                 setIsLoading(false);
+                setProgressStatus("");
                 return;
             }
 
@@ -91,74 +94,177 @@ export function QuizGenerator() {
                 console.warn("Could not generate JWT:", jwtError);
             }
 
-            // --- PROMPT CONSTRUCTION ---
-            let systemPrompt = "";
-            const instructionText = sourceType === "topic"
-                ? `Generate a ${mode} based on the provided TOPIC.`
-                : `Generate a ${mode} STRICTLY based on the provided TEXT.`;
+            // --- CHUNKING STRATEGY ---
+            // 20k characters allows safety buffer for response within context limits
+            const CHUNK_SIZE = 20000;
+            const isLargeText = prompt.length > CHUNK_SIZE;
 
-            if (mode === "quiz") {
-                systemPrompt = `
-You are an expert quiz generator. ${instructionText}
+            let finalResponseText = "";
+
+            if (isLargeText) {
+                console.log(`Large text detected (${prompt.length} chars). Splitting into chunks...`);
+                const chunks = [];
+                for (let i = 0; i < prompt.length; i += CHUNK_SIZE) {
+                    chunks.push(prompt.slice(i, i + CHUNK_SIZE));
+                }
+
+                const totalQty = parseInt(quantity);
+                // Distribute items roughly equally among chunks
+                const baseQtyPerChunk = Math.floor(totalQty / chunks.length);
+                const remainder = totalQty % chunks.length;
+
+                let allItemsLines: string[] = [];
+                let headerMetadata = "";
+
+                for (let i = 0; i < chunks.length; i++) {
+                    const chunkQty = baseQtyPerChunk + (i < remainder ? 1 : 0);
+                    if (chunkQty === 0) continue; // Skip chunks if we don't need items from them
+
+                    setProgressStatus(`Processing part ${i + 1} of ${chunks.length}...`);
+
+                    // Specific prompt for this chunk
+                    const chunkSystemPrompt = mode === "quiz"
+                        ? `You are an expert quiz generator. Generate a partial quiz based STRICTLY on the provided text fragment (Part ${i + 1}/${chunks.length}).
 Difficulty: ${difficulty}
-Target Quantity: ${quantity}
+Target Quantity: ${chunkQty}
 
 Reply with valid TOON format.
 Structure:
 title: String
 description: String
 category: String
-items[${quantity}]{question,optionsString,correctOption,explanation,hint,points}:
-"Question text","Option A|Option B|Option C|Option D","Option A","Explanation",Hint,10
+items[${chunkQty}]{question,optionsString,correctOption,explanation,hint,points}:
+...items...
 
-Note: The 'optionsString' field MUST be a single string containing 4 options separated by a pipe character ('|'). Do NOT use JSON arrays.
-
-Example Output:
-title: Math Quiz
-description: Basic Math
-category: Education
-items[2]{question,optionsString,correctOption,explanation,hint,points}:
-  What is 2+2?,3|4|5|6,4,Simple addition,Count fingers,10
-  What is 3*3?,6|9|12|15,9,Multiplication,Repeated addition,10
-`;
-            } else {
-                systemPrompt = `
-You are an expert flashcard generator. ${instructionText}
+IMPORTANT: 
+- Generate EXACTLY ${chunkQty} items.
+- Focus ONLY on information present in this text fragment.
+- 'optionsString' MUST be 4 options separated by '|'.
+`
+                        : `You are an expert flashcard generator. Generate partial flashcards based STRICTLY on the provided text fragment (Part ${i + 1}/${chunks.length}).
 Difficulty: ${difficulty}
-Target Quantity: ${quantity}
+Target Quantity: ${chunkQty}
 
 Reply with valid TOON format.
 Structure:
 title: String
 description: String
-items[${quantity}]{front,back,hint}
+items[${chunkQty}]{front,back,hint}
+...items...
 
-Example Output:
-title: Biology Basics
-description: Cell structure
-items[2]{front,back,hint}:
-  Powerhouse of cell,Mitochondria,Energy producer
-  Control center,Nucleus,Contains DNA
+IMPORTANT:
+- Generate EXACTLY ${chunkQty} items.
 `;
+
+                    const chunkFullPrompt = `${chunkSystemPrompt}\n\nUser Content (Fragment ${i + 1}):\n${chunks[i]}`;
+
+                    const aiResponse = await window.puter.ai.chat(chunkFullPrompt, {
+                        model: 'gemini-2.0-flash'
+                    });
+                    const responseText = typeof aiResponse === 'string' ? aiResponse : aiResponse?.message?.content || aiResponse?.text || JSON.stringify(aiResponse);
+
+                    // Parse response to extract items
+                    const lines = responseText.split('\n');
+                    let itemsStarted = false;
+                    for (const line of lines) {
+                        if (line.trim().startsWith('items[')) {
+                            itemsStarted = true;
+                            // Capture metadata from the first successful chunk
+                            if (!headerMetadata) {
+                                // Extract everything before this line
+                                const headerIndex = responseText.indexOf(line);
+                                headerMetadata = responseText.substring(0, headerIndex);
+                            }
+                            continue;
+                        }
+                        if (itemsStarted && line.trim().length > 0) {
+                            allItemsLines.push(line.trim());
+                        }
+                    }
+                }
+
+                // Reconstruct a single TOON response
+                // If no metadata found (fail), fallback to default
+                if (!headerMetadata) {
+                    headerMetadata = `title: Extracted ${mode === 'quiz' ? 'Quiz' : 'Deck'}\ndescription: Generated from uploaded content\ncategory: General\n`;
+                }
+
+                const itemsHeader = mode === "quiz"
+                    ? `items[${allItemsLines.length}]{question,optionsString,correctOption,explanation,hint,points}:`
+                    : `items[${allItemsLines.length}]{front,back,hint}:`;
+
+                finalResponseText = `${headerMetadata.trim()}\n${itemsHeader}\n${allItemsLines.join('\n')}`;
+                console.log("Reconstructed TOON response:", finalResponseText.slice(0, 200) + "...");
+
+            } else {
+                // --- PROMPT CONSTRUCTION (Standard) ---
+                let systemPrompt = "";
+                const instructionText = sourceType === "topic"
+                    ? `Generate a ${mode} based on the provided TOPIC.`
+                    : `Generate a ${mode} STRICTLY based on the provided TEXT.`;
+
+                if (mode === "quiz") {
+                    systemPrompt = `
+    You are an expert quiz generator. ${instructionText}
+    Difficulty: ${difficulty}
+    Target Quantity: ${quantity}
+    
+    Reply with valid TOON format.
+    Structure:
+    title: String
+    description: String
+    category: String
+    items[${quantity}]{question,optionsString,correctOption,explanation,hint,points}:
+    "Question text","Option A|Option B|Option C|Option D","Option A","Explanation",Hint,10
+    
+    Note: The 'optionsString' field MUST be a single string containing 4 options separated by a pipe character ('|'). Do NOT use JSON arrays.
+    
+    Example Output:
+    title: Math Quiz
+    description: Basic Math
+    category: Education
+    items[2]{question,optionsString,correctOption,explanation,hint,points}:
+      What is 2+2?,3|4|5|6,4,Simple addition,Count fingers,10
+      What is 3*3?,6|9|12|15,9,Multiplication,Repeated addition,10
+    `;
+                } else {
+                    systemPrompt = `
+    You are an expert flashcard generator. ${instructionText}
+    Difficulty: ${difficulty}
+    Target Quantity: ${quantity}
+    
+    Reply with valid TOON format.
+    Structure:
+    title: String
+    description: String
+    items[${quantity}]{front,back,hint}
+    
+    Example Output:
+    title: Biology Basics
+    description: Cell structure
+    items[2]{front,back,hint}:
+      Powerhouse of cell,Mitochondria,Energy producer
+      Control center,Nucleus,Contains DNA
+    `;
+                }
+
+                const fullPrompt = `${systemPrompt}\n\nUser Content:\n${prompt}`;
+
+                // --- PUTER AI CALL ---
+                console.log("Calling Puter AI...");
+                const aiResponse = await window.puter.ai.chat(fullPrompt, {
+                    model: 'gemini-2.0-flash'
+                });
+                finalResponseText = typeof aiResponse === 'string' ? aiResponse : aiResponse?.message?.content || aiResponse?.text || JSON.stringify(aiResponse);
             }
 
-            const fullPrompt = `${systemPrompt}\n\nUser Content:\n${prompt}`;
-
-            // --- PUTER AI CALL ---
-            console.log("Calling Puter AI...");
-            const aiResponse = await window.puter.ai.chat(fullPrompt, {
-                model: 'gemini-3-flash-preview'
-            }); // Using 1.5-flash as it's free and fast, user mentioned others but this is reliable.
-
-            // To support response objects or strings:
-            const responseText = typeof aiResponse === 'string' ? aiResponse : aiResponse?.message?.content || aiResponse?.text || JSON.stringify(aiResponse);
-
-            console.log("AI Response received, processing...");
+            console.log("AI Response received, processing save...");
+            setProgressStatus("Saving...");
 
             // --- SAVE TO SERVER ---
             const result = mode === "quiz"
-                ? await processAndSaveQuiz(responseText, difficulty, jwt)
-                : await processAndSaveFlashcards(responseText, difficulty, jwt)
+                ? await processAndSaveQuiz(finalResponseText, difficulty, jwt)
+                : await processAndSaveFlashcards(finalResponseText, difficulty, jwt)
 
             if (result.success) {
                 console.log("Generation Successful! Result:", result)
@@ -170,6 +276,7 @@ items[2]{front,back,hint}:
             console.error("Submission Error:", error)
         } finally {
             setIsLoading(false)
+            setProgressStatus("")
         }
     }
 
@@ -349,12 +456,21 @@ items[2]{front,back,hint}:
                         </button>
                     </div>
                 </div>
+
+                {/* Progress Status for Large Prompts */}
+                {progressStatus && isLoading && (
+                    <div className="absolute -bottom-10 left-0 w-full text-center">
+                        <span className="text-xs font-bold text-[#58cc02] animate-pulse">
+                            {progressStatus}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Suggested Topics */}
             <div className="flex flex-wrap justify-center gap-3 mt-10">
                 {["Organic Chemistry", "World War II", "Python Basics", "French Verbs"].map((topic) => (
-                    <button key={topic} className="px-5 py-2 rounded-full border border-[#37464f] text-[#afafaf] text-sm font-bold hover:bg-[#37464f] hover:text-foreground transition-all">
+                    <button key={topic} onClick={() => setPrompt(topic)} className="px-5 py-2 rounded-full border border-[#37464f] text-[#afafaf] text-sm font-bold hover:bg-[#37464f] hover:text-foreground transition-all">
                         {topic}
                     </button>
                 ))}
